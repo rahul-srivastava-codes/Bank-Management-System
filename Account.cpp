@@ -1,3 +1,2 @@
-class Account
-{
-};
+
+#include "Account.hpp"

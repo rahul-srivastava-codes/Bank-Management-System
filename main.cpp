@@ -1,132 +1,29 @@
 #include <iostream>
 #include <string>
+#include <fstream>
+#include "Account.hpp"
+#include "Checking.hpp"
+#include "Saving.hpp"
 using namespace std;
 
 // Base Abstract Class
-class Account
+
+void deleteAccount()
 {
-private:
-    long mobilenumber;
-    string dob;
-    string name;
-    string email;
-    int aadharNumber;
-    long pan;
-    double depositAmount;
-    string type;
-
-public:
-    // Default Constructor
-    Account()
-        : mobilenumber(0), dob(""), name(""), email(""), aadharNumber(0), pan(0), depositAmount(0.0), type(type) {}
-
-    // Parameterized Constructor
-    Account(long mob, const string &d, const string &n, const string &e, int aadhar, long p, double dep, const string &t)
-        : mobilenumber(mob), dob(d), name(n), email(e), aadharNumber(aadhar), pan(p), depositAmount(dep), type(t) {}
-
-    // Virtual Destructor (Crucial for base polymorphic classes)
-    virtual ~Account() {}
-
-    // Getters (one-liners)
-    long getMobileNumber() const { return mobilenumber; }
-    string getDob() const { return dob; }
-    string getName() const { return name; }
-    string getEmail() const { return email; }
-    int getAadharNumber() const { return aadharNumber; }
-    long getPan() const { return pan; }
-    double getDeposit() const { return depositAmount; }
-    string getType() const { return type; }
-
-    // Setters (one-liners)
-    void setMobileNumber(long mob) { mobilenumber = mob; }
-    void setDob(const string &d) { dob = d; }
-    void setName(const string &n) { name = n; }
-    void setEmail(const string &e) { email = e; }
-    void setAadharNumber(int aadhar) { aadharNumber = aadhar; }
-    void setPan(long p) { pan = p; }
-    void setDeposit(double dep) { depositAmount = dep; }
-    void setType(const string &t) { type = t; }
-
-    // Pure Virtual Function makes this class genuinely abstract
-    virtual void showAccountDetails() const = 0;
-
-    // Common Interface Virtual Methods
-    virtual void createAccount(string type) {}
-    virtual void deleteAccount() {}
-    virtual void transaction() {}
-    virtual void balanceCheck() const {}
-    virtual void lastNTransactions(int n) const {}
-    virtual void lastNTransactionsByDateRange(const string &fromDate, const string &toDate) const {}
-};
-
-// Derived Class: Saving
-class Saving : public Account
-{
-private:
-    int transactionLimit;
-    const float interestRate = 4.0f; // 4.0%
-
-public:
-    // Default Constructor
-    Saving() : Account(), transactionLimit(5)
-    {
-        setType("Savings");
-    }
-
-    // Parameterized Constructor with Base Chaining
-    Saving(long mob, const string &d, const string &n, const string &e, int aadhar, long p, double dep, int limit = 5)
-        : Account(mob, d, n, e, aadhar, p, dep, "Savings"), transactionLimit(limit) {}
-
-    // Getter and Setter
-    int getTransactionLimit() const { return transactionLimit; }
-    float getInterestRate() const { return interestRate; }
-    void setTransactionLimit(int limit) { transactionLimit = limit; }
-
-    // Overriding pure virtual function
-    void showAccountDetails() const override
-    {
-        cout << "[Savings Account] Name: " << getName()
-             << " | Balance: " << getDeposit()
-             << " | Limit: " << transactionLimit
-             << " | Rate: " << interestRate << "%\n";
-    }
-};
-
-// Derived Class: Checking
-class Checking : public Account
-{
-private:
-    string gst;
-
-public:
-    // Default Constructor
-    Checking() : Account(), gst("")
-    {
-        setType("Checking");
-    }
-
-    // Parameterized Constructor with Base Chaining
-    Checking(long mob, const string &d, const string &n, const string &e, int aadhar, long p, double dep, const string &gstNumber)
-        : Account(mob, d, n, e, aadhar, p, dep, "Checking"), gst(gstNumber) {}
-
-    // Getter and Setter
-    string getGst() const { return gst; }
-    void setGst(const string &gstNumber) { gst = gstNumber; }
-
-    // Overriding pure virtual function
-    void showAccountDetails() const override
-    {
-        cout << "[Checking Account] Name: " << getName() << " | Balance: " << getDeposit() << " | GST: " << gst << "\n";
-    }
-};
-void accountType()
-{
+    string accountNumber;
+    fstream account("accountBook.txt", ios::out);
+    fstream transaction("transactionBook.txt", ios::out);
+    cout << "Enter the account number which you want to delete: ";
+    cin >> accountNumber;
 }
 
 int main()
 {
+    fstream account("accountBook.txt", ios::out | ios::app);
+    fstream transaction("transactionBook.txt", ios::out | ios::app);
+
     int choice = 0;
-    Account *acc;
+    Account *acc = nullptr;
 
     cout << "------------------------------------------\n";
     cout << "------------ Welcome to Bank -------------\n";
@@ -156,55 +53,93 @@ int main()
         switch (choice)
         {
         case 1:
-            cout << "\n[Action] Add account selected.\n";
+            cout << "\nAdd account selected.\n";
             int option;
-            cout << "Type of account you want to create: ";
-            cin >> option;
+            cout << "Type of account you want to create: \n";
             cout << "1.Saving account\n2.Checking Account\n";
+            cin >> option;
+            acc = nullptr;
             switch (option)
             {
             case 1:
+            {
                 acc = new Saving();
                 break;
+            }
             case 2:
+            {
                 acc = new Checking();
                 break;
+            }
             default:
                 cout << "Invalid type";
                 break;
             }
+            if (acc != nullptr)
+            {
+                acc->createAccount();
+                cout << "\nAccount created successfully!\n";
 
+                // Write all common fields separated by commas
+                account << acc->getType() << ","
+                        << acc->getName() << ","
+                        << acc->getMobileNumber() << ","
+                        << acc->getDob() << ","
+                        << acc->getEmail() << ","
+                        << acc->getAadharNumber() << ","
+                        << acc->getPan() << ","
+                        << acc->getDeposit();
+
+                // Write specific fields based on derived account type
+                if (Saving *s = dynamic_cast<Saving *>(acc))
+                {
+                    account << "," << s->getTransactionLimit()
+                            << "," << s->getInterestRate() << "\n";
+                }
+                else if (Checking *c = dynamic_cast<Checking *>(acc))
+                {
+                    account << "," << c->getGst() << "\n";
+                }
+
+                account.flush(); // Ensure data is immediately written to disk
+                acc->showAccountDetails();
+            }
             // TODO: Call your addAccount() function here
             break;
 
         case 2:
-            cout << "\n[Action] Delete account selected.\n";
+            cout << "\nDelete account selected.\n";
+            deleteAccount();
+
             // TODO: Call your deleteAccount() function here
             break;
 
         case 3:
-            cout << "\n[Action] Make transaction selected.\n";
+            cout << "\nMake transaction selected.\n";
             // TODO: Call your makeTransaction() function here
             break;
 
         case 4:
-            cout << "\n[Action] Query balance selected.\n";
+            cout << "\nQuery balance selected.\n";
             // TODO: Call your queryBalance() function here
             break;
 
         case 5:
-            cout << "\n[Action] List transactions selected.\n";
+            int n;
+            cout << "Enter the last n transaction you want: ";
+            cin >> n;
+            cout << "\nList transactions selected.\n";
             // TODO: Call your listTransactions() function here
             break;
 
         case 6:
-            cout << "\n[Action] Save & Restore selected.\n";
+            cout << "\nSave & Restore selected.\n";
             // TODO: Call your saveAndRestore() function here
             break;
 
         case 7:
             cout << "\nExiting... Thank you for using Bank System!\n";
-            exit();
+            exit(0);
             break;
 
         default:
@@ -213,6 +148,5 @@ int main()
         }
 
     } while (choice != 7);
-
     return 0;
 }
